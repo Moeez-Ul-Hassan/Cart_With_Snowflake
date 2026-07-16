@@ -27,5 +27,8 @@ jobs:
             # Gracefully kill the old FastAPI process
             pkill -f uvicorn || true
             
-            # Start the new server in the background and log output
-            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > api.log 2>&1 &
+            # Start the new server completely detached from the SSH session
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000> api.log 2>&1 </dev/null &
+            
+            # Give the server 2 seconds to fork before closing the SSH tunnel
+            sleep 2
