@@ -24,11 +24,11 @@ jobs:
             source venv/bin/activate
             pip install -r requirements.txt
             
-            # Gracefully kill the old FastAPI process
-            pkill -f uvicorn || true
+            # The Magic Bracket Trick: Kills the server, but spares this script!
+            pkill -f "[u]vicorn" || true
             
             # Start the new server completely detached from the SSH session
-            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000> api.log 2>&1 </dev/null &
+            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > api.log 2>&1 </dev/null &
             
             # Give the server 2 seconds to fork before closing the SSH tunnel
             sleep 2
