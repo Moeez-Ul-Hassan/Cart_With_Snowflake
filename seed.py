@@ -6,21 +6,23 @@ from app.models.domain import User, Product, Cart, CartItem
 
 def seed_massive_data():
     db = SessionLocal()
+    BATCH_SIZE = 1000
     try:
-        print("Starting Enterprise Data Generation (5 Million Rows)...")
+        print("🚀 Starting Enterprise Data Generation (1 Million Rows / 1k Batches)...")
         start_time = time.time()
 
-        # 1. Seed 100,000 Users
-        print("Seeding 100,000 Users...")
-        user_data = [
-            {"email": f"user{i}@cart.com", "name": f"User {i}"} 
-            for i in range(1, 100001)
-        ]
-        db.execute(insert(User), user_data)
-        db.commit()
+        # 1. Seed 10,000 Users (10 batches of 1,000)
+        print("Seeding 10,000 Users...")
+        for chunk in range(10):
+            start_id = (chunk * BATCH_SIZE) + 1
+            end_id = start_id + BATCH_SIZE
+            user_data = [{"email": f"user{i}@nomixtrade.com", "name": f"User {i}"} for i in range(start_id, end_id)]
+            db.execute(insert(User), user_data)
+            db.commit()
+            print(f"  -> Inserted { (chunk + 1) * BATCH_SIZE } Users")
 
-        # 2. Seed 10,000 Products
-        print("Seeding 10,000 Products...")
+        # 2. Seed 1,000 Products (1 batch of 1,000)
+        print("Seeding 1,000 Products...")
         product_data = [
             {
                 "name": f"Enterprise Product {i}", 
@@ -28,49 +30,51 @@ def seed_massive_data():
                 "stock": random.randint(10, 1000), 
                 "reserved_stock": 0
             } 
-            for i in range(1, 10001)
+            for i in range(1, 1001)
         ]
         db.execute(insert(Product), product_data)
         db.commit()
+        print("Inserted 1000 Products")
 
-        # 3. Seed 1,000,000 Carts (Chunked to save RAM)
-        print("Seeding 1,000,000 Carts (in chunks of 100,000)...")
+        # 3. Seed 200,000 Carts (200 batches of 1,000)
+        print("Seeding 200,000 Carts...")
         cart_statuses = ["active", "checked_out", "abandoned"]
-        
-        for chunk in range(10): 
+        for chunk in range(200): 
             cart_data = [
                 {
-                    "user_id": random.randint(1, 100000), 
+                    "user_id": random.randint(1, 10000), 
                     "status": random.choice(cart_statuses), 
                     "total_amount": 0.0
                 } 
-                for _ in range(100000)
+                for _ in range(BATCH_SIZE)
             ]
             db.execute(insert(Cart), cart_data)
             db.commit()
-            print(f"  -> Inserted { (chunk + 1) * 100000 } Carts")
+            if (chunk + 1) % 50 == 0: # Print every 50k to keep terminal clean
+                print(f"  -> Inserted { (chunk + 1) * BATCH_SIZE } Carts")
 
-        # 4. Seed 3,900,000 Cart Items (Chunked to save RAM)
-        print("Seeding 3,900,000 Cart Items (in chunks of 100,000)...")
-        for chunk in range(39): 
+        # 4. Seed 800,000 Cart Items (800 batches of 1,000)
+        print("Seeding 800,000 Cart Items...")
+        for chunk in range(800): 
             item_data = [
                 {
-                    "cart_id": random.randint(1, 1000000), 
-                    "product_id": random.randint(1, 10000), 
+                    "cart_id": random.randint(1, 200000), 
+                    "product_id": random.randint(1, 1000), 
                     "quantity": random.randint(1, 5), 
                     "price_at_addition": round(random.uniform(10.0, 500.0), 2)
                 } 
-                for _ in range(100000)
+                for _ in range(BATCH_SIZE)
             ]
             db.execute(insert(CartItem), item_data)
             db.commit()
-            print(f"  -> Inserted { (chunk + 1) * 100000 } Cart Items")
+            if (chunk + 1) % 100 == 0: # Print every 100k
+                print(f"  -> Inserted { (chunk + 1) * BATCH_SIZE } Cart Items")
 
         end_time = time.time()
-        print(f"BOOM! ~5 Million Rows seeded successfully in {round(end_time - start_time, 2)} seconds.")
+        print(f"✅ BOOM! ~1 Million Rows seeded successfully in {round(end_time - start_time, 2)} seconds.")
 
     except Exception as e:
-        print(f" Error during mass seeding: {e}")
+        print(f"❌ Error during mass seeding: {e}")
         db.rollback()
     finally:
         db.close()
