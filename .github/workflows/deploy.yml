@@ -17,18 +17,30 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd Cart_With_Snowflake
+            cd /home/cartadmin/Cart_With_Snowflake
             git pull origin main
             
             # Activate environment and install new dependencies
             source venv/bin/activate
             pip install -r requirements.txt
             
-            # The Magic Bracket Trick: Kills the server, but spares this script!
-            pkill -f "[u]vicorn" || true
+            # Create a native Linux background service for the API
+            sudo tee /etc/systemd/system/cartapi.service > /dev/null << 'EOF'
+            [Unit]
+            Description=Enterprise Cart FastAPI
+            After=network.target
+
+            [Service]
+            User=cartadmin
+            WorkingDirectory=/home/cartadmin/Cart_With_Snowflake
+            ExecStart=/home/cartadmin/Cart_With_Snowflake/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+            Restart=always
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
             
-            # Start the new server completely detached from the SSH session
-            nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > api.log 2>&1 </dev/null &
-            
-            # Give the server 2 seconds to fork before closing the SSH tunnel
-            sleep 2
+            # Reload the Linux daemon and restart your application
+            sudo systemctl daemon-reload
+            sudo systemctl enable cartapi
+            sudo systemctl restart cartapi
