@@ -1,0 +1,766 @@
+{
+  "version": 4,
+  "terraform_version": "1.15.6",
+  "serial": 27,
+  "lineage": "451f93b2-ed49-78e2-0b86-5e4fd866cf83",
+  "outputs": {
+    "server_public_ip": {
+      "value": "13.220.15.233",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "archive_file",
+      "name": "lambda_zip",
+      "provider": "provider[\"registry.terraform.io/hashicorp/archive\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "exclude_symlink_directories": null,
+            "excludes": null,
+            "id": "88e27a65037e48fc20a9b9d4de6862d478198786",
+            "output_base64sha256": "DrgWWIothnlXmJAhVo4YjfrYOks9p2SgDJYOJjgB83A=",
+            "output_base64sha512": "bweJwsRhxrMMSlX/E4ScCSFgwrd4TnR57nm+N7s1VKbiKDzkQ7M7tnS3HccsSkSXM4PYYjIPiepcyTOCf8iSiQ==",
+            "output_file_mode": null,
+            "output_md5": "9b0abb3ec4804458f5d0143cab32176b",
+            "output_path": "./lambda_function.zip",
+            "output_sha": "88e27a65037e48fc20a9b9d4de6862d478198786",
+            "output_sha256": "0eb816588a2d867957989021568e188dfad83a4b3da764a00c960e263801f370",
+            "output_sha512": "6f0789c2c461c6b30c4a55ff13849c092160c2b7784e7479ee79be37bb3554a6e2283ce443b33bb674b71dc72c4a44973383d862320f89ea5cc933827fc89289",
+            "output_size": 1373,
+            "source": [],
+            "source_content": null,
+            "source_content_filename": null,
+            "source_dir": null,
+            "source_file": "./../lambda_code/lambda_function.py",
+            "type": "zip"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_cloudwatch_event_rule",
+      "name": "midnight_trigger",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:events:us-east-1:010296564502:rule/trigger_daily_batch_midnight",
+            "description": "",
+            "event_bus_name": "default",
+            "event_pattern": null,
+            "force_destroy": false,
+            "id": "trigger_daily_batch_midnight",
+            "is_enabled": true,
+            "name": "trigger_daily_batch_midnight",
+            "name_prefix": "",
+            "region": "us-east-1",
+            "role_arn": "",
+            "schedule_expression": "cron(0 0 * * ? *)",
+            "state": "ENABLED",
+            "tags": {},
+            "tags_all": {}
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "name": "trigger_daily_batch_midnight",
+            "region": "us-east-1"
+          },
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_cloudwatch_event_target",
+      "name": "lambda_target",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "appsync_target": [],
+            "arn": "arn:aws:lambda:us-east-1:010296564502:function:buyduck_daily_incremental_batch",
+            "batch_target": [],
+            "dead_letter_config": [],
+            "ecs_target": [],
+            "event_bus_name": "default",
+            "force_destroy": false,
+            "http_target": [],
+            "id": "trigger_daily_batch_midnight-TriggerLambda",
+            "input": "",
+            "input_path": "",
+            "input_transformer": [],
+            "kinesis_target": [],
+            "redshift_target": [],
+            "region": "us-east-1",
+            "retry_policy": [],
+            "role_arn": "",
+            "rule": "trigger_daily_batch_midnight",
+            "run_command_targets": [],
+            "sagemaker_pipeline_target": [],
+            "sqs_target": [],
+            "target_id": "TriggerLambda"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "event_bus_name": "default",
+            "region": "us-east-1",
+            "rule": "trigger_daily_batch_midnight",
+            "target_id": "TriggerLambda"
+          },
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ==",
+          "dependencies": [
+            "aws_cloudwatch_event_rule.midnight_trigger",
+            "aws_iam_role.lambda_batch_role",
+            "aws_lambda_function.daily_batch",
+            "data.archive_file.lambda_zip"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "lambda_batch_role",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::010296564502:role/lambda_daily_batch_role",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-07-17T16:12:03Z",
+            "description": "",
+            "force_detach_policies": false,
+            "id": "lambda_daily_batch_role",
+            "inline_policy": [
+              {
+                "name": "lambda_s3_ssm_policy",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:PutObject\",\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::buyduck-bronze/*\"},{\"Action\":[\"ssm:GetParameter\",\"ssm:PutParameter\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:ssm:us-east-1:*:parameter/buyduck/watermark/*\"}]}"
+              }
+            ],
+            "managed_policy_arns": [
+              "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+            ],
+            "max_session_duration": 3600,
+            "name": "lambda_daily_batch_role",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {},
+            "tags_all": {},
+            "unique_id": "AROAQEZNZDMLADSTNE7PY"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "name": "lambda_daily_batch_role"
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "lambda_s3_ssm_policy",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "lambda_daily_batch_role:lambda_s3_ssm_policy",
+            "name": "lambda_s3_ssm_policy",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:PutObject\",\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::buyduck-bronze/*\"},{\"Action\":[\"ssm:GetParameter\",\"ssm:PutParameter\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:ssm:us-east-1:*:parameter/buyduck/watermark/*\"}]}",
+            "role": "lambda_daily_batch_role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "name": "lambda_s3_ssm_policy",
+            "role": "lambda_daily_batch_role"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_iam_role.lambda_batch_role"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "cart_server",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 2,
+          "attributes": {
+            "ami": "ami-04b70fa74e45c3917",
+            "arn": "arn:aws:ec2:us-east-1:010296564502:instance/i-041c2cd04eb0aeada",
+            "associate_public_ip_address": true,
+            "availability_zone": "us-east-1f",
+            "capacity_reservation_specification": [
+              {
+                "capacity_reservation_preference": "open",
+                "capacity_reservation_target": []
+              }
+            ],
+            "cpu_options": [
+              {
+                "amd_sev_snp": "",
+                "core_count": 1,
+                "nested_virtualization": "",
+                "threads_per_core": 2
+              }
+            ],
+            "credit_specification": [
+              {
+                "cpu_credits": "unlimited"
+              }
+            ],
+            "disable_api_stop": false,
+            "disable_api_termination": false,
+            "ebs_block_device": [],
+            "ebs_optimized": false,
+            "enable_primary_ipv6": null,
+            "enclave_options": [
+              {
+                "enabled": false
+              }
+            ],
+            "ephemeral_block_device": [],
+            "force_destroy": false,
+            "get_password_data": false,
+            "hibernation": false,
+            "host_id": "",
+            "host_resource_group_arn": null,
+            "iam_instance_profile": "",
+            "id": "i-041c2cd04eb0aeada",
+            "instance_initiated_shutdown_behavior": "stop",
+            "instance_lifecycle": "",
+            "instance_market_options": [],
+            "instance_state": "running",
+            "instance_type": "t3.micro",
+            "ipv6_address_count": 0,
+            "ipv6_addresses": [],
+            "key_name": "cart-key",
+            "launch_template": [],
+            "maintenance_options": [
+              {
+                "auto_recovery": "default"
+              }
+            ],
+            "metadata_options": [
+              {
+                "http_endpoint": "enabled",
+                "http_protocol_ipv6": "disabled",
+                "http_put_response_hop_limit": 2,
+                "http_tokens": "required",
+                "instance_metadata_tags": "disabled"
+              }
+            ],
+            "monitoring": false,
+            "network_interface": [],
+            "outpost_arn": "",
+            "password_data": "",
+            "placement_group": "",
+            "placement_group_id": "",
+            "placement_partition_number": 0,
+            "primary_network_interface": [
+              {
+                "delete_on_termination": true,
+                "network_interface_id": "eni-01b83e5e96a3b0251"
+              }
+            ],
+            "primary_network_interface_id": "eni-01b83e5e96a3b0251",
+            "private_dns": "ip-172-31-70-46.ec2.internal",
+            "private_dns_name_options": [
+              {
+                "enable_resource_name_dns_a_record": false,
+                "enable_resource_name_dns_aaaa_record": false,
+                "hostname_type": "ip-name"
+              }
+            ],
+            "private_ip": "172.31.70.46",
+            "public_dns": "ec2-34-239-172-78.compute-1.amazonaws.com",
+            "public_ip": "34.239.172.78",
+            "region": "us-east-1",
+            "root_block_device": [
+              {
+                "delete_on_termination": true,
+                "device_name": "/dev/sda1",
+                "encrypted": false,
+                "iops": 100,
+                "kms_key_id": "",
+                "tags": {},
+                "tags_all": {},
+                "throughput": 0,
+                "volume_id": "vol-0ef162c979363f1c7",
+                "volume_size": 30,
+                "volume_type": "gp2"
+              }
+            ],
+            "secondary_network_interface": [],
+            "secondary_private_ips": [],
+            "security_groups": [
+              "enterprise-cart-security-group"
+            ],
+            "source_dest_check": true,
+            "spot_instance_request_id": "",
+            "subnet_id": "subnet-0a21aefd7d5ded0c3",
+            "tags": {
+              "Name": "Enterprise-Cart-Server"
+            },
+            "tags_all": {
+              "Name": "Enterprise-Cart-Server"
+            },
+            "tenancy": "default",
+            "timeouts": null,
+            "user_data": "#!/bin/bash \r\napt-get update -y \r\napt-get install -y docker.io docker-compose git python3-pip python3-venv \r\nsystemctl start docker \r\nsystemctl enable docker \r\nNEW_USER=\"cartadmin\" \r\nuseradd -m -s /bin/bash $NEW_USER \r\nusermod -aG sudo $NEW_USER \r\nusermod -aG docker $NEW_USER \r\necho \"$NEW_USER ALL=(ALL) NOPASSWD:ALL\" \u003e\u003e /etc/sudoers.d/$NEW_USER \r\nmkdir -p /home/$NEW_USER/.ssh \r\ncp /home/ubuntu/.ssh/authorized_keys /home/$NEW_USER/.ssh/ \r\nchown -R $NEW_USER:$NEW_USER /home/$NEW_USER/.ssh \r\nchmod 700 /home/$NEW_USER/.ssh \r\nchmod 600 /home/$NEW_USER/.ssh/authorized_keys \r\n",
+            "user_data_base64": null,
+            "user_data_replace_on_change": false,
+            "volume_tags": null,
+            "vpc_security_group_ids": [
+              "sg-059d97ab53759df18"
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "id": "i-041c2cd04eb0aeada",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMCwicmVhZCI6OTAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMiJ9",
+          "dependencies": [
+            "aws_security_group.enterprise_cart_sg"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_lambda_function",
+      "name": "daily_batch",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "architectures": [
+              "x86_64"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:010296564502:function:buyduck_daily_incremental_batch",
+            "capacity_provider_config": [],
+            "code_sha256": "bqiYxfuBurokrb8RZ5ecBk/+VXaQjx3PvpvZZqLRP9U=",
+            "code_signing_config_arn": "",
+            "dead_letter_config": [],
+            "description": "",
+            "durable_config": [],
+            "environment": [],
+            "ephemeral_storage": [
+              {
+                "size": 512
+              }
+            ],
+            "file_system_config": [],
+            "filename": "./lambda_function.zip",
+            "function_name": "buyduck_daily_incremental_batch",
+            "handler": "lambda_function.lambda_handler",
+            "id": "buyduck_daily_incremental_batch",
+            "image_config": [],
+            "image_uri": "",
+            "invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:010296564502:function:buyduck_daily_incremental_batch/invocations",
+            "kms_key_arn": "",
+            "last_modified": "2026-07-17T17:35:37.000+0000",
+            "layers": [
+              "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312:18"
+            ],
+            "logging_config": [
+              {
+                "application_log_level": "",
+                "log_format": "Text",
+                "log_group": "/aws/lambda/buyduck_daily_incremental_batch",
+                "system_log_level": ""
+              }
+            ],
+            "memory_size": 256,
+            "package_type": "Zip",
+            "publish": false,
+            "publish_to": null,
+            "qualified_arn": "arn:aws:lambda:us-east-1:010296564502:function:buyduck_daily_incremental_batch:$LATEST",
+            "qualified_invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:010296564502:function:buyduck_daily_incremental_batch:$LATEST/invocations",
+            "region": "us-east-1",
+            "replace_security_groups_on_destroy": null,
+            "replacement_security_group_ids": null,
+            "reserved_concurrent_executions": -1,
+            "response_streaming_invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2021-11-15/functions/arn:aws:lambda:us-east-1:010296564502:function:buyduck_daily_incremental_batch/response-streaming-invocations",
+            "role": "arn:aws:iam::010296564502:role/lambda_daily_batch_role",
+            "runtime": "python3.12",
+            "s3_bucket": null,
+            "s3_key": null,
+            "s3_object_version": null,
+            "signing_job_arn": "",
+            "signing_profile_version_arn": "",
+            "skip_destroy": false,
+            "snap_start": [],
+            "source_code_hash": "bqiYxfuBurokrb8RZ5ecBk/+VXaQjx3PvpvZZqLRP9U=",
+            "source_code_size": 1505,
+            "source_kms_key_arn": "",
+            "tags": {},
+            "tags_all": {},
+            "tenancy_config": [],
+            "timeout": 300,
+            "timeouts": null,
+            "tracing_config": [
+              {
+                "mode": "PassThrough"
+              }
+            ],
+            "use_resource_timeout_for_propagation": null,
+            "version": "$LATEST",
+            "vpc_config": [
+              {
+                "ipv6_allowed_for_dual_stack": false,
+                "security_group_ids": [
+                  "sg-04a052239865a1cb8"
+                ],
+                "subnet_ids": [
+                  "subnet-0160603e334b872f5",
+                  "subnet-06a118e4152fe2263",
+                  "subnet-0a21aefd7d5ded0c3",
+                  "subnet-0a820fce291d2534c",
+                  "subnet-0b5e9285b362f75f5",
+                  "subnet-0ec73d5ec8faa393d"
+                ],
+                "vpc_id": "vpc-023efa0895d31c33f"
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "function_name": "buyduck_daily_incremental_batch",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_iam_role.lambda_batch_role",
+            "aws_security_group.lambda_sg",
+            "data.archive_file.lambda_zip",
+            "data.aws_subnets.default",
+            "data.aws_vpc.default"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_lambda_permission",
+      "name": "allow_eventbridge",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "action": "lambda:InvokeFunction",
+            "event_source_token": null,
+            "function_name": "buyduck_daily_incremental_batch",
+            "function_url_auth_type": null,
+            "id": "AllowExecutionFromEventBridge",
+            "invoked_via_function_url": null,
+            "principal": "events.amazonaws.com",
+            "principal_org_id": null,
+            "qualifier": "",
+            "region": "us-east-1",
+            "source_account": null,
+            "source_arn": "arn:aws:events:us-east-1:010296564502:rule/trigger_daily_batch_midnight",
+            "statement_id": "AllowExecutionFromEventBridge",
+            "statement_id_prefix": "",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "function_name": "buyduck_daily_incremental_batch",
+            "qualifier": null,
+            "region": "us-east-1",
+            "statement_id": "AllowExecutionFromEventBridge"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJyZWFkIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "aws_cloudwatch_event_rule.midnight_trigger",
+            "aws_iam_role.lambda_batch_role",
+            "aws_lambda_function.daily_batch",
+            "data.archive_file.lambda_zip"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "buyduck_bronze",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "acceleration_status": "",
+            "acl": null,
+            "arn": "arn:aws:s3:::buyduck-bronze",
+            "bucket": "buyduck-bronze",
+            "bucket_domain_name": "buyduck-bronze.s3.amazonaws.com",
+            "bucket_namespace": "global",
+            "bucket_prefix": "",
+            "bucket_region": "us-east-1",
+            "bucket_regional_domain_name": "buyduck-bronze.s3.us-east-1.amazonaws.com",
+            "cors_rule": [],
+            "force_destroy": true,
+            "grant": [
+              {
+                "id": "f473f41161cff18dc21ae0926cd214edc9669dffa77b055da72a25c124345ad0",
+                "permissions": [
+                  "FULL_CONTROL"
+                ],
+                "type": "CanonicalUser",
+                "uri": ""
+              }
+            ],
+            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+            "id": "buyduck-bronze",
+            "lifecycle_rule": [],
+            "logging": [],
+            "object_lock_configuration": [],
+            "object_lock_enabled": false,
+            "policy": "",
+            "region": "us-east-1",
+            "replication_configuration": [],
+            "request_payer": "BucketOwner",
+            "server_side_encryption_configuration": [
+              {
+                "rule": [
+                  {
+                    "apply_server_side_encryption_by_default": [
+                      {
+                        "kms_master_key_id": "",
+                        "sse_algorithm": "AES256"
+                      }
+                    ],
+                    "bucket_key_enabled": false
+                  }
+                ]
+              }
+            ],
+            "tags": {},
+            "tags_all": {},
+            "timeouts": null,
+            "versioning": [
+              {
+                "enabled": false,
+                "mfa_delete": false
+              }
+            ],
+            "website": [],
+            "website_domain": null,
+            "website_endpoint": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "bucket": "buyduck-bronze",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjM2MDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "enterprise_cart_sg",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:010296564502:security-group/sg-059d97ab53759df18",
+            "description": "Allow SSH, FastAPI, and PostgreSQL inbound traffic",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "Allow all outbound internet access",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-059d97ab53759df18",
+            "ingress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "HTTP Traffic for Lets Encrypt and Web",
+                "from_port": 80,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 80
+              },
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "HTTPS Traffic (Secure NGINX API)",
+                "from_port": 443,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 443
+              },
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "Lambda to Postgres Port (Public)",
+                "from_port": 5433,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 5433
+              },
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "PostgreSQL Database (Legacy Port)",
+                "from_port": 5432,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 5432
+              },
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "SSH Access",
+                "from_port": 22,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 22
+              }
+            ],
+            "name": "enterprise-cart-security-group",
+            "name_prefix": "",
+            "owner_id": "010296564502",
+            "region": "us-east-1",
+            "revoke_rules_on_delete": false,
+            "tags": {},
+            "tags_all": {},
+            "timeouts": null,
+            "vpc_id": "vpc-023efa0895d31c33f"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "id": "sg-059d97ab53759df18",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "lambda_sg",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:010296564502:security-group/sg-04a052239865a1cb8",
+            "description": "Allows Lambda to reach the internet and internal VPC",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-04a052239865a1cb8",
+            "ingress": [],
+            "name": "lambda_batch_sg",
+            "name_prefix": "",
+            "owner_id": "010296564502",
+            "region": "us-east-1",
+            "revoke_rules_on_delete": false,
+            "tags": {},
+            "tags_all": {},
+            "timeouts": null,
+            "vpc_id": "vpc-023efa0895d31c33f"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "010296564502",
+            "id": "sg-04a052239865a1cb8",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "data.aws_vpc.default"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}
