@@ -6,7 +6,8 @@ import structlog
 from app.database.session import get_db
 from app.database.redis_client import get_redis
 from app.services.cart_service import CartService
-from app.services.analytics import track_cart_event
+# NEW: Import the SQS Streaming Service instead of local analytics
+from app.services.aws_sqs import send_event_to_sqs 
 from app.schemas.domain import CartResponse, CartItemCreate, BillResponse
 from app.models.domain import Cart, CartItem, Product
 from app.exceptions.business_logic import (
@@ -36,6 +37,7 @@ def create_cart(
     db.add(new_cart)
     db.commit()
     db.refresh(new_cart)
+    
     logger.info("cart_created", cart_id=new_cart.id, user_id=user_id)
     return new_cart
 
@@ -72,9 +74,14 @@ def add_item_to_cart(
     db.commit()
     db.refresh(cart)
 
-    background_tasks.add_task(
-        track_cart_event, user_id=cart.user_id, event_type="cart_add", product_id=product.id, quantity=item.quantity
-    )
+    # PHASE 2: Stream event to SQS
+    event_data = {
+        "user_id": cart.user_id, 
+        "cart_id": cart.id, 
+        "product_id": product.id, 
+        "quantity": item.quantity
+    }
+    background_tasks.add_task(send_event_to_sqs, "cart_add", event_data)
     
     logger.info("item_added", cart_id=cart.id, product_id=product.id, quantity=item.quantity)
     return cart
@@ -92,7 +99,9 @@ def checkout_cart(
 
     cart = db.query(Cart).filter(Cart.id == cart_id).first()
     if cart:
-        background_tasks.add_task(track_cart_event, user_id=cart.user_id, event_type="checkout_complete")
+        # PHASE 2: Stream event to SQS
+        event_data = {"user_id": cart.user_id, "cart_id": cart.id}
+        background_tasks.add_task(send_event_to_sqs, "checkout_complete", event_data)
         
     return response
 
@@ -137,9 +146,14 @@ def remove_item_from_cart(
     db.commit()
     db.refresh(cart)
 
-    background_tasks.add_task(
-        track_cart_event, user_id=cart.user_id, event_type="cart_remove", product_id=product.id, quantity=quantity_removed
-    )
+    # PHASE 2: Stream event to SQS
+    event_data = {
+        "user_id": cart.user_id, 
+        "cart_id": cart.id, 
+        "product_id": product.id, 
+        "quantity": quantity_removed
+    }
+    background_tasks.add_task(send_event_to_sqs, "cart_remove", event_data)
     
     logger.info("item_removed", cart_id=cart.id, product_id=product.id)
     return cart
@@ -185,6 +199,9 @@ def abandon_cart(
     cart.is_deleted = True
     db.commit()
 
-    background_tasks.add_task(track_cart_event, user_id=cart.user_id, event_type="cart_abandon")
+    # PHASE 2: Stream event to SQS
+    event_data = {"user_id": cart.user_id, "cart_id": cart.id}
+    background_tasks.add_task(send_event_to_sqs, "cart_abandon", event_data)
+    
     logger.info("cart_abandoned", cart_id=cart.id)
     return {"status": "success", "message": "Cart abandoned and inventory released"}

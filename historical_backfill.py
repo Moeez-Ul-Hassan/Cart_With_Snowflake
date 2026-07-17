@@ -1,0 +1,118 @@
+import pandas as pd
+import sqlalchemy
+import boto3
+import pyarrow as pa
+import pyarrow.parquet as pq
+import io
+import json
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+
+# ==========================================
+# 1. CONFIGURATION
+# ==========================================
+# Notice the IP is now 127.0.0.1 (Localhost) because we will use an SSH Tunnel!
+DB_URL = "postgresql://postgres:enterprise_password@127.0.0.1:5433/cart_db"
+S3_BUCKET = "buyduck-bronze"
+AWS_REGION = "us-east-1"
+
+# The master list of all tables in your database
+TABLE_NAMES = ["users", "products", "carts", "cart_items"] 
+DATE_COLUMN = "created_at" 
+
+START_DATE = datetime(2023, 1, 1) 
+END_DATE = datetime.now()
+
+# ==========================================
+# 2. INITIALIZATION
+# ==========================================
+engine = sqlalchemy.create_engine(DB_URL)
+s3_client = boto3.client('s3', region_name=AWS_REGION)
+
+def upload_to_s3(df, table_name, year, month, day):
+    if df.empty:
+        return
+
+    # NEW S3 PATH: Includes the table name partition!
+    s3_key = f"batch-data/table={table_name}/year={year}/month={month:02d}/day={day:02d}/historical_backfill.parquet"
+    
+    table = pa.Table.from_pandas(df)
+    out_buffer = io.BytesIO()
+    pq.write_table(table, out_buffer, compression='snappy')
+    
+    s3_client.put_object(
+        Bucket=S3_BUCKET,
+        Key=s3_key,
+        Body=out_buffer.getvalue()
+    )
+    print(f"  -> Uploaded: s3://{S3_BUCKET}/{s3_key} | Rows: {len(df)}")
+
+# ==========================================
+# 3. THE MULTI-TABLE EXTRACTION ENGINE
+# ==========================================
+def run_historical_backfill():
+    print("Starting Enterprise Historical Backfill...")
+    
+    # We will store the watermark for every table in a dictionary
+    watermarks = {}
+
+    for table_name in TABLE_NAMES:
+        print("\n==========================================")
+        print(f"Processing Table: {table_name.upper()}")
+
+        
+        current_start = START_DATE
+        highest_timestamp = None
+
+        while current_start < END_DATE:
+            current_end = current_start + relativedelta(months=1)
+            if current_end > END_DATE:
+                current_end = END_DATE
+                
+            print(f"Extracting {table_name}: {current_start.date()} to {current_end.date()}")
+            
+            query = f"""
+                SELECT * FROM {table_name} 
+                WHERE {DATE_COLUMN} >= '{current_start.strftime('%Y-%m-%d %H:%M:%S')}' 
+                AND {DATE_COLUMN} < '{current_end.strftime('%Y-%m-%d %H:%M:%S')}'
+                ORDER BY {DATE_COLUMN} ASC
+            """
+            
+            try:
+                chunk_df = pd.read_sql(query, engine)
+            except Exception as e:
+                print(f"Error reading {table_name}. Skipping. Error: {e}")
+                break
+            
+            if not chunk_df.empty:
+                chunk_df[DATE_COLUMN] = pd.to_datetime(chunk_df[DATE_COLUMN])
+                
+                chunk_max_time = chunk_df[DATE_COLUMN].max()
+                if highest_timestamp is None or chunk_max_time > highest_timestamp:
+                    highest_timestamp = chunk_max_time
+
+                grouped = chunk_df.groupby([chunk_df[DATE_COLUMN].dt.year, 
+                                            chunk_df[DATE_COLUMN].dt.month, 
+                                            chunk_df[DATE_COLUMN].dt.day])
+                
+                for (year, month, day), group_df in grouped:
+                    upload_to_s3(group_df, table_name, year, month, day)
+
+            current_start = current_end
+
+        if highest_timestamp:
+            watermarks[table_name] = highest_timestamp.isoformat()
+        else:
+            print(f"No data found for {table_name}.")
+
+    # ==========================================
+    # 4. SAVE MULTI-TABLE WATERMARK
+    # ==========================================
+    if watermarks:
+        with open('watermark.json', 'w') as f:
+            json.dump(watermarks, f, indent=4)
+        print("\n=== FULL BACKFILL COMPLETE ===")
+        print("Watermarks saved for future daily increments.")
+    
+if __name__ == "__main__":
+    run_historical_backfill()
