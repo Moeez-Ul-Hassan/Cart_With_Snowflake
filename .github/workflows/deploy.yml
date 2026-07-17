@@ -23,6 +23,9 @@ jobs:
             source venv/bin/activate 
             pip install -r requirements.txt 
             
+            # GUARANTEE DATABASES ARE RUNNING BEFORE API BOOTS
+            sudo docker-compose up -d
+            
             # Create a bulletproof native Linux background service 
             sudo tee /etc/systemd/system/cartapi.service > /dev/null << 'EOF'
             [Unit] 

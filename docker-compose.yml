@@ -3,6 +3,7 @@ version: '3.8'
 services:
   postgres_db:
     image: postgres:15-alpine
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: enterprise_password
@@ -14,11 +15,13 @@ services:
 
   redis_cache:
     image: redis:7-alpine
+    restart: always
     ports:
       - "6379:6379"
 
   pgadmin:
     image: dpage/pgadmin4:latest
+    restart: always
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@cart.com # This is required at launch
       PGADMIN_DEFAULT_PASSWORD: admin # This is required at launch
