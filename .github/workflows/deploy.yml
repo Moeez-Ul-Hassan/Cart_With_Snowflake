@@ -1,46 +1,47 @@
-name: Enterprise API CD Pipeline
+name: Enterprise API CD Pipeline 
 
-on:
-  push:
-    branches:
-      - main
+on: 
+  push: 
+    branches: 
+      - main 
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/cartadmin/Cart_With_Snowflake
-            git pull origin main
+jobs: 
+  deploy: 
+    runs-on: ubuntu-latest 
+    steps: 
+      - name: Deploy to EC2 
+        uses: appleboy/ssh-action@master 
+        with: 
+          host: ${{ secrets.EC2_HOST }} 
+          username: ${{ secrets.EC2_USERNAME }} 
+          key: ${{ secrets.EC2_SSH_KEY }} 
+          script: | 
+            cd /home/cartadmin/Cart_With_Snowflake 
+            git pull origin main 
             
-            # Activate environment and install new dependencies
-            source venv/bin/activate
-            pip install -r requirements.txt
+            # Activate environment and install new dependencies 
+            source venv/bin/activate 
+            pip install -r requirements.txt 
             
-            # Create a native Linux background service for the API
+            # Create a bulletproof native Linux background service 
             sudo tee /etc/systemd/system/cartapi.service > /dev/null << 'EOF'
-            [Unit]
-            Description=Enterprise Cart FastAPI
-            After=network.target
-
-            [Service]
-            User=cartadmin
-            WorkingDirectory=/home/cartadmin/Cart_With_Snowflake
-            ExecStart=/home/cartadmin/Cart_With_Snowflake/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
-            Restart=always
-
-            [Install]
-            WantedBy=multi-user.target
+            [Unit] 
+            Description=Enterprise Cart FastAPI 
+            After=network.target 
+            
+            [Service] 
+            User=cartadmin 
+            WorkingDirectory=/home/cartadmin/Cart_With_Snowflake 
+            # CRITICAL: Bind to localhost so ONLY NGINX can reach it! 
+            ExecStart=/home/cartadmin/Cart_With_Snowflake/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 
+            Restart=always 
+            RestartSec=5 
+            
+            [Install] 
+            WantedBy=multi-user.target 
             EOF
             
-            # Reload the Linux daemon and restart your application
-            sudo systemctl daemon-reload
-            sudo systemctl enable cartapi
+            # Reload the Linux daemon and gracefully restart the API 
+            sudo systemctl daemon-reload 
+            sudo systemctl enable cartapi 
             sudo systemctl restart cartapi
