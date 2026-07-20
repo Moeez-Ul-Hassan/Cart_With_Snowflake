@@ -68,7 +68,6 @@ resource "aws_instance" "cart_server" {
   
   vpc_security_group_ids = [aws_security_group.enterprise_cart_sg.id] 
 
-  # NEW: Grants FastAPI permission to send messages to SQS
   iam_instance_profile = aws_iam_instance_profile.ec2_sqs_profile.name
   
   root_block_device { 
@@ -135,7 +134,9 @@ resource "aws_iam_role_policy" "lambda_s3_ssm_policy" {
     Version = "2012-10-17"
     Statement = [
       { Action = ["s3:PutObject", "s3:GetObject"], Effect = "Allow", Resource = "arn:aws:s3:::buyduck-bronze/*" },
-      { Action = ["ssm:GetParameter", "ssm:PutParameter"], Effect = "Allow", Resource = "arn:aws:ssm:us-east-1:*:parameter/buyduck/watermark/*" }
+      { Action = ["ssm:GetParameter", "ssm:PutParameter"], Effect = "Allow", Resource = "arn:aws:ssm:us-east-1:*:parameter/buyduck/watermark/*" },
+      # FIXED: Restores CloudWatch visibility so logs can compile!
+      { Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], Effect = "Allow", Resource = "arn:aws:logs:*:*:*" }
     ]
   })
 }
@@ -156,6 +157,13 @@ resource "aws_lambda_function" "daily_batch" {
   timeout          = 300  
   memory_size      = 256  
   layers           = ["arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312:18"]
+
+  # NEW: Automatically passes the elastic IP to your Python code dynamically
+  environment {
+    variables = {
+      DB_HOST = aws_eip.cart_server_eip.public_ip
+    }
+  }
 }
 
 resource "aws_cloudwatch_event_rule" "midnight_trigger" {

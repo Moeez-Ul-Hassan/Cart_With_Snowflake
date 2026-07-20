@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import boto3
 import pyarrow as pa
@@ -14,12 +15,15 @@ def lambda_handler(event, context):
     
     print("Waking up for Daily Incremental Batch...")
     
-    # 1. Connect natively using the PUBLIC IP so Lambda doesn't need a VPC
+    # NEW: Dynamically fetches the host IP assigned by Terraform
+    db_host = os.environ.get("DB_HOST", "34.239.172.78")
+    print(f"Connecting to database host: {db_host}")
+    
     conn = pg8000.dbapi.connect(
         user="postgres",
         password="enterprise_password",
-        host="98.90.30.252", # <--- UPDATED TO PUBLIC IP
-        port=5433,
+        host=db_host, 
+        port=5432,
         database="cart_db"
     )
     
