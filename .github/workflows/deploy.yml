@@ -1,50 +1,86 @@
-name: Enterprise API CD Pipeline 
+name: Enterprise API CD Pipeline
 
-on: 
-  push: 
-    branches: 
-      - main 
+on:
+  push:
+    branches:
+      - main
 
-jobs: 
-  deploy: 
-    runs-on: ubuntu-latest 
-    steps: 
-      - name: Deploy to EC2 
-        uses: appleboy/ssh-action@master 
-        with: 
-          host: ${{ secrets.EC2_HOST }} 
-          username: ${{ secrets.EC2_USERNAME }} 
-          key: ${{ secrets.EC2_SSH_KEY }} 
-          script: | 
-            cd /home/cartadmin/Cart_With_Snowflake 
-            git pull origin main 
+jobs:
+  # ==========================================
+  # JOB 1: Deploy Backend to EC2
+  # ==========================================
+  deploy-ec2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/cartadmin/Cart_With_Snowflake
+            git pull origin main
             
-            # Activate environment and install new dependencies 
-            source venv/bin/activate 
-            pip install -r requirements.txt 
+            # Activate environment and install new dependencies
+            source venv/bin/activate
+            pip install -r requirements.txt
             
             # GUARANTEE DATABASES ARE RUNNING BEFORE API BOOTS
             sudo docker-compose up -d
             
-            # Create a bulletproof native Linux background service 
+            # Create a bulletproof native Linux background service
             sudo tee /etc/systemd/system/cartapi.service > /dev/null << 'EOF'
-            [Unit] 
-            Description=Enterprise Cart FastAPI 
-            After=network.target 
+            [Unit]
+            Description=Enterprise Cart FastAPI
+            After=network.target
             
-            [Service] 
-            User=cartadmin 
-            WorkingDirectory=/home/cartadmin/Cart_With_Snowflake 
-            # CRITICAL: Bind to localhost so ONLY NGINX can reach it! 
-            ExecStart=/home/cartadmin/Cart_With_Snowflake/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 
-            Restart=always 
-            RestartSec=5 
+            [Service]
+            User=cartadmin
+            WorkingDirectory=/home/cartadmin/Cart_With_Snowflake
+            # CRITICAL: Bind to localhost so ONLY NGINX can reach it!
+            ExecStart=/home/cartadmin/Cart_With_Snowflake/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+            Restart=always
+            RestartSec=5
             
-            [Install] 
-            WantedBy=multi-user.target 
+            [Install]
+            WantedBy=multi-user.target
             EOF
             
-            # Reload the Linux daemon and gracefully restart the API 
-            sudo systemctl daemon-reload 
-            sudo systemctl enable cartapi 
+            # Reload the Linux daemon and gracefully restart the API
+            sudo systemctl daemon-reload
+            sudo systemctl enable cartapi
             sudo systemctl restart cartapi
+
+  # ==========================================
+  # JOB 2: Deploy Streaming Consumer to AWS Lambda
+  # ==========================================
+  deploy-lambda:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          
+      - name: Zip Lambda Code
+        run: |
+          cd lambda_streaming
+          zip -r ../deployment.zip .
+          cd ..
+          
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Deploy to AWS Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name buyduck-streaming-consumer \
+            --zip-file fileb://deployment.zip
