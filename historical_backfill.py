@@ -11,7 +11,7 @@ from dateutil.relativedelta import relativedelta
 # 1. CONFIGURATION
 # ==========================================
 # Connecting via localhost SSH Tunnel (Port 5433)
-DB_URL = "postgresql://postgres:enterprise_password@127.0.0.1:5433/cart_db"
+DB_URL = "postgresql://postgres:enterprise_password@127.0.0.1:5432/cart_db"
 S3_BUCKET = "buyduck-bronze"
 AWS_REGION = "us-east-1"
 
