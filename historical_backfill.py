@@ -4,14 +4,13 @@ import boto3
 import pyarrow as pa
 import pyarrow.parquet as pq
 import io
-import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
-# Notice the IP is now 127.0.0.1 (Localhost) because we will use an SSH Tunnel!
+# Connecting via localhost SSH Tunnel (Port 5433)
 DB_URL = "postgresql://postgres:enterprise_password@127.0.0.1:5433/cart_db"
 S3_BUCKET = "buyduck-bronze"
 AWS_REGION = "us-east-1"
@@ -29,12 +28,13 @@ END_DATE = datetime.now()
 engine = sqlalchemy.create_engine(DB_URL)
 s3_client = boto3.client('s3', region_name=AWS_REGION)
 
-def upload_to_s3(df, table_name, year, month, day):
+def upload_to_s3(df, table_name, year, month):
     if df.empty:
         return
 
-    # NEW S3 PATH: Includes the table name partition!
-    s3_key = f"batch-data/table={table_name}/year={year}/month={month:02d}/day={day:02d}/historical_backfill.parquet"
+    # NEW S3 PATH: Drops data into the new historical baseline folder!
+    # Removed the nested date folders. Snowflake will read all files in this directory.
+    s3_key = f"historical/{table_name}/bootstrap_{year}_{month:02d}.parquet"
     
     table = pa.Table.from_pandas(df)
     out_buffer = io.BytesIO()
@@ -51,18 +51,13 @@ def upload_to_s3(df, table_name, year, month, day):
 # 3. THE MULTI-TABLE EXTRACTION ENGINE
 # ==========================================
 def run_historical_backfill():
-    print("Starting Enterprise Historical Backfill...")
+    print("🚀 Starting Enterprise Historical Baseline Export...")
     
-    # We will store the watermark for every table in a dictionary
-    watermarks = {}
-
     for table_name in TABLE_NAMES:
         print("\n==========================================")
         print(f"Processing Table: {table_name.upper()}")
-
         
         current_start = START_DATE
-        highest_timestamp = None
 
         while current_start < END_DATE:
             current_end = current_start + relativedelta(months=1)
@@ -81,38 +76,19 @@ def run_historical_backfill():
             try:
                 chunk_df = pd.read_sql(query, engine)
             except Exception as e:
-                print(f"Error reading {table_name}. Skipping. Error: {e}")
+                print(f"❌ Error reading {table_name}. Skipping. Error: {e}")
                 break
             
             if not chunk_df.empty:
                 chunk_df[DATE_COLUMN] = pd.to_datetime(chunk_df[DATE_COLUMN])
                 
-                chunk_max_time = chunk_df[DATE_COLUMN].max()
-                if highest_timestamp is None or chunk_max_time > highest_timestamp:
-                    highest_timestamp = chunk_max_time
-
-                grouped = chunk_df.groupby([chunk_df[DATE_COLUMN].dt.year, 
-                                            chunk_df[DATE_COLUMN].dt.month, 
-                                            chunk_df[DATE_COLUMN].dt.day])
-                
-                for (year, month, day), group_df in grouped:
-                    upload_to_s3(group_df, table_name, year, month, day)
+                # Upload the monthly chunk directly to the historical folder
+                upload_to_s3(chunk_df, table_name, current_start.year, current_start.month)
 
             current_start = current_end
 
-        if highest_timestamp:
-            watermarks[table_name] = highest_timestamp.isoformat()
-        else:
-            print(f"No data found for {table_name}.")
-
-    # ==========================================
-    # 4. SAVE MULTI-TABLE WATERMARK
-    # ==========================================
-    if watermarks:
-        with open('watermark.json', 'w') as f:
-            json.dump(watermarks, f, indent=4)
-        print("\n=== FULL BACKFILL COMPLETE ===")
-        print("Watermarks saved for future daily increments.")
+    print("\n=== 🏁 FULL HISTORICAL BASELINE COMPLETE ===")
+    print("Note: No watermarks saved. The realtime SQS streaming pipeline will handle all future data.")
     
 if __name__ == "__main__":
     run_historical_backfill()
