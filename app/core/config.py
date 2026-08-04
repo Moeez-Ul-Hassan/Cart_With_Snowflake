@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Updated for PostgreSQL
-    DATABASE_URL: str = "postgresql+psycopg2://postgres:enterprise_password@localhost:5433/cart_db"
+    DATABASE_URL: str = "postgresql+psycopg2://postgres:enterprise_password@localhost:5432/cart_db"
     REDIS_URL: str = "redis://localhost:6379/0" 
 
     class Config:

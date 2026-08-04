@@ -254,3 +254,67 @@ resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
   function_name    = aws_lambda_function.streaming_worker.arn
   batch_size       = 10 
 }
+
+# 1. The Policy granting Read Access to your S3 Data Lake
+resource "aws_iam_policy" "snowflake_s3_read_policy" {
+  name        = "Snowflake_S3_Read_Policy"
+  description = "Allows Snowflake to read Parquet files from the bronze data lake"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:GetObjectVersion"
+        ]
+        Resource = "arn:aws:s3:::buyduck-bronze/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Resource = "arn:aws:s3:::buyduck-bronze"
+      }
+    ]
+  })
+}
+
+# 2. The IAM Role for Snowflake (with a temporary placeholder trust policy)
+# The updated IAM Role for Snowflake with the authentic Trust Handshake
+resource "aws_iam_role" "snowflake_role" {
+  name = "Snowflake_S3_Integration_Role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::078558209672:user/iye02000-s"
+        }
+        Action = "sts:AssumeRole"
+        Condition = {
+          StringEquals = {
+            "sts:ExternalId" = "FV34250_SFCRole=3_KvKsB5SMlU77NAoBmJf8yTb07eE=" 
+          }
+        }
+      }
+    ]
+  })
+}
+
+# 3. Attach the Policy to the Role
+resource "aws_iam_role_policy_attachment" "snowflake_role_attach" {
+  role       = aws_iam_role.snowflake_role.name
+  policy_arn = aws_iam_policy.snowflake_s3_read_policy.arn
+}
+
+# 4. Output the Role ARN so we can easily copy it for Snowflake
+output "snowflake_iam_role_arn" {
+  value       = aws_iam_role.snowflake_role.arn
+  description = "The ARN of the IAM Role for Snowflake Storage Integration"
+}
