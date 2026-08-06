@@ -31,9 +31,9 @@ class CartService:
 
         # 4. Redis Cache Set
         self.cache.set(idempotency_key, "processed", ex=86400)
-        logger.info("cart_checked_out", cart_id=cart.id, idempotency_key=idempotency_key)
+        logger.info("cart_checked_out", cart.id, idempotency_key=idempotency_key)
 
-        # 5. NEW: Publish CHECKOUT Business Event
+        # 5. Publish CHECKOUT Business Event
         checkout_payload = {
             "cart_id": cart.id,
             "user_id": cart.user_id,

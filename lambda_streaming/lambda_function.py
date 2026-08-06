@@ -1,7 +1,7 @@
 import json
-import boto3
-from datetime import datetime
 import uuid
+from datetime import datetime
+import boto3
 
 s3_client = boto3.client('s3')
 S3_BUCKET = "buyduck-bronze"

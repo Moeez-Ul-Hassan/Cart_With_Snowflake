@@ -1,6 +1,6 @@
-import boto3
 import json
 from datetime import datetime
+import boto3
 import structlog
 
 logger = structlog.get_logger()
@@ -19,7 +19,7 @@ def send_event_to_sqs(event_type: str, data: dict, domain: str = "cart"):
         
         event_payload = {
             "domain": domain,              # e.g., 'user', 'product', 'cart', 'order'
-            "event_type": event_type,        # e.g., 'CHECKOUT', 'ITEM_ADDED', 'USER_CREATED'
+            "event_type": event_type,       # e.g., 'CHECKOUT', 'ITEM_ADDED', 'USER_CREATED'
             "timestamp": datetime.utcnow().isoformat(),
             "payload": data
         }
