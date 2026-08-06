@@ -7,9 +7,29 @@ s3_client = boto3.client('s3')
 S3_BUCKET = "buyduck-bronze"
 
 def lambda_handler(event, context):
+    # Safely handle manual tests or non-SQS test payloads
+    if 'Records' not in event:
+        print("⚠️ Received non-SQS test event payload:", json.dumps(event))
+        return {
+            "statusCode": 200,
+            "body": "Test event received successfully (No SQS Records found)."
+        }
+
     for record in event['Records']:
         try:
-            message_body = json.loads(record['body'])
+            raw_body = record.get('body', '')
+            
+            # Catch plain-text AWS test messages and skip them
+            if raw_body == "Test message.":
+                print("⚠️ Ignored default AWS SQS plain-text test message.")
+                continue
+
+            # Safely attempt to parse the JSON
+            try:
+                message_body = json.loads(raw_body)
+            except json.JSONDecodeError:
+                print(f"⚠️ Warning: Record body is not valid JSON. Skipping. Body: {raw_body}")
+                continue
             
             # Extract domain and event_type with backward-compatible defaults
             domain = message_body.get('domain', 'cart').lower()
@@ -34,7 +54,7 @@ def lambda_handler(event, context):
             print(f"Successfully landed event in S3: s3://{S3_BUCKET}/{s3_key}")
             
         except Exception as e:
-            print(f"Error processing streaming event: {str(e)}")
+            print(f"❌ Error processing streaming event: {str(e)}")
             raise e
             
     return {"statusCode": 200, "body": "Streaming Events Ingested Successfully"}
